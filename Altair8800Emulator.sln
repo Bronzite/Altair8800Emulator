@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32901.215
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altair8800Emulator", "Altair8800Emulator\Altair8800Emulator.csproj", "{8FCB9845-29C1-43CF-836E-7B156D7E4DA2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altair8800EmulatorTests", "Altair8800EmulatorTests\Altair8800EmulatorTests.csproj", "{06145AF4-284C-469B-98D7-81103C41F6FD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8FCB9845-29C1-43CF-836E-7B156D7E4DA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8FCB9845-29C1-43CF-836E-7B156D7E4DA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8FCB9845-29C1-43CF-836E-7B156D7E4DA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8FCB9845-29C1-43CF-836E-7B156D7E4DA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06145AF4-284C-469B-98D7-81103C41F6FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06145AF4-284C-469B-98D7-81103C41F6FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06145AF4-284C-469B-98D7-81103C41F6FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06145AF4-284C-469B-98D7-81103C41F6FD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0E426FD2-DCA8-4E51-9562-C515B3B377F6}
+	EndGlobalSection
+EndGlobal
