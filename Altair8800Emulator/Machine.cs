@@ -1,9 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Net.Http.Headers;
-using System.Security.Cryptography.X509Certificates;
-using System.Xml;
-
-namespace Altair8800Emulator
+﻿namespace Altair8800Emulator
 {
     /// <summary>
     /// Main class for emulating an Altair 8800 computer.
@@ -17,7 +12,7 @@ namespace Altair8800Emulator
             vTable = new Action[256];
             DeviceBus = new Device[256];
             Interrupts = true;
-
+            
             LoadvTable();
         }
 
@@ -131,36 +126,114 @@ namespace Altair8800Emulator
         /// <summary>
         /// Adds the given byte to the Accumulator.
         /// </summary>
-        /// <param name="amount"></param>
+        /// <param name="amount">Value to add to Accumulator</param>
         public void ADD(byte amount) { int Acc = (int)Accumulator + (int)amount;
             if (Acc > 255) CarryBit = true;
             Accumulator = (byte)(Acc & 0xFF);
+            SetFlags();
         }
-
+        /// <summary>
+        /// Add to Accumulator with Carry 
+        /// </summary>
+        /// <param name="amount">Value to add to accumulator</param>
         public void ADC(byte amount)
         {
             int Acc = (int)Accumulator + (int)amount + (CarryBit?1:0);
             if (Acc > 255) CarryBit = true;
             Accumulator = (byte)(Acc & 0xFF);
+            SetFlags();
         }
-
+        /// <summary>
+        /// Subtract from Accumulator
+        /// </summary>
+        /// <param name="amount">Value to subtract from Accumulator</param>
         public void SUB(byte amount)
         {
             ADD(TwosComplement(amount));
+            SetFlags();
         }
-
+        /// <summary>
+        /// Subtract from Accumulator with Carry
+        /// </summary>
+        /// <param name="amount">Value to subtract from Accumulator</param>
         public void SBB(byte amount)
         {
             ADD(TwosComplement((byte)(amount + (CarryBit ? 1 : 0))));
-        }
-        private byte TwosComplement(byte b)
-        {
-            return (byte)(b ^ 0xFF + 1);
+            SetFlags();
         }
 
-        public void ANA(byte amount) { Accumulator = (byte)(Accumulator & amount); }
-        public void ORA(byte amount) { Accumulator = (byte)(Accumulator | amount); }
-        public void XRA(byte amount) { Accumulator = (byte)(Accumulator ^ amount); }
+        /// <summary>
+        /// Compute Two's Complement of byte
+        /// </summary>
+        /// <param name="b">Byte to convert</param>
+        /// <returns>Two's complement representation of byte</returns>
+        private byte TwosComplement(byte b)
+        {
+            return (byte)((b ^ 0xFF) + 1);
+        }
+
+        /// <summary>
+        /// Set flags based on Accumulator
+        /// </summary>
+        public void SetFlags() => SetFlags(Accumulator);
+        
+        /// <summary>
+        /// Set flags based on provided byte.
+        /// </summary>
+        /// <param name="a">Byte to set flags</param>
+        public void SetFlags(byte a)
+        {
+            SetParity(a);
+            SetZero(a);
+            SetSign(a);
+        }
+
+        /// <summary>
+        /// Set sign bit based on byte
+        /// </summary>
+        /// <param name="a">Byte to set sign byte from.</param>
+        public void SetSign(byte a) { SignBit = (a & 0b10000000) == 0b10000000; }
+        /// <summary>
+        /// Set zero bit based on byte
+        /// </summary>
+        /// <param name="a">Byte to set zero byte from.</param>
+        public void SetZero(byte a) { ZeroBit = (a == 0x00); }
+        /// <summary>
+        /// Set Parity bit based on Accumulator
+        /// </summary>
+        public void SetParity() => SetParity(Accumulator);
+        /// <summary>
+        /// Compute and set Parity Bit based on byte
+        /// </summary>
+        /// <param name="a">Byte to compute parity from</param>
+        public void SetParity(byte a)
+        {
+            ParityBit = false;
+            for (int i = 0; i < 8; i++)
+            {
+                if ((a & 0b10000000) == 0b10000000) ParityBit = !ParityBit;
+                a = (byte)(a << 1);
+            }
+        }
+        /// <summary>
+        /// Apply byte to Accumulator with AND operation.
+        /// </summary>
+        /// <param name="amount">Byte to apply/param>
+        public void ANA(byte amount) { Accumulator = (byte)(Accumulator & amount); SetFlags(); }
+        /// <summary>
+        /// Apply byte to Accumulator with OR operation.
+        /// </summary>
+        /// <param name="amount">Byte to apply/param>
+        public void ORA(byte amount) { Accumulator = (byte)(Accumulator | amount); SetFlags(); }
+        /// <summary>
+        /// Apply byte to Accumulator with XOR operation.
+        /// </summary>
+        /// <param name="amount">Byte to apply/param>
+        public void XRA(byte amount) { Accumulator = (byte)(Accumulator ^ amount); SetFlags(); }
+        /// <summary>
+        /// Compare byte to Accumulator
+        /// </summary>
+        /// <param name="amount">Byte to compare/param>
         public void CMP(byte amount) { int CompareValue = (Accumulator + TwosComplement(amount));
             if (CompareValue == 0)
             {
@@ -168,27 +241,41 @@ namespace Altair8800Emulator
             }
             if (CompareValue > 0) CarryBit = false;
             if (CompareValue < 0) CarryBit = true;
+            SetFlags();
         }
-
+        /// <summary>
+        /// Push a word onto the Stack
+        /// </summary>
+        /// <param name="bHigh">High byte to push</param>
+        /// <param name="bLow">Low byte to push</param>
         public void PUSH(byte bHigh, byte bLow)
         {
             MainMemory[StackPointer++] = bHigh;
             MainMemory[StackPointer++] = bLow;
         }
-
+        /// <summary>
+        /// Pop a word from the Stack
+        /// </summary>
+        /// <param name="bHigh">High byte to push</param>
+        /// <param name="bLow">Low byte to push</param>
         public void POP(ref byte bHigh,ref byte bLow)
         {
             bLow = MainMemory[--StackPointer];
             bHigh = MainMemory[--StackPointer];
         }
-
+        /// <summary>
+        /// Set Program Counter to immediate location
+        /// </summary>
         public void JMP()
         {
             byte bLow = MainMemory[++ProgramCounter];
             byte bHigh = MainMemory[++ProgramCounter]; 
             ProgramCounter = (UInt16)(GetMemoryLocation(bHigh, bLow)-1);
         }
-
+        /// <summary>
+        /// Move current location to Stack, and set Program Counter to
+        /// immediate location.
+        /// </summary>
         public void CALL()
         {
             byte bLow = MainMemory[++ProgramCounter];
@@ -196,18 +283,34 @@ namespace Altair8800Emulator
 
             CALL(bHigh, bLow);
         }
+
+        /// <summary>
+        /// Move current location to Stack, and set Program Counter to
+        /// immediate location.
+        /// </summary>
+        /// <param name="bHigh">High byte of memory location to jump to</param>
+        /// <param name="bLow">Low byte of memory location to jump to</param>
         public void CALL(byte bHigh, byte bLow) {
             byte bPCHigh = (byte)(ProgramCounter >> 8);
             byte bPCLow  = (byte)(ProgramCounter & 0xFF);
             PUSH(bPCHigh, bPCLow);
             ProgramCounter = (UInt16)((bHigh << 8) + bLow);
         }
+
+        /// <summary>
+        /// Return to location on stack.
+        /// </summary>
         public void RETURN() {
             byte bPCHigh=0, bPCLow=0;
             POP(ref bPCHigh, ref bPCLow);
             ProgramCounter = (UInt16)((bPCHigh << 8) + bPCLow);
         }
 
+        /// <summary>
+        /// Reset by jumping program counter back to the specified block
+        /// at the top of the memory area.
+        /// </summary>
+        /// <param name="iBlock">Block to start with</param>
         public void RST(int iBlock)
         {
             byte bHigh = (byte)(ProgramCounter >> 8);
@@ -216,8 +319,16 @@ namespace Altair8800Emulator
             PUSH(bHigh, bLow);
             ProgramCounter = (UInt16)(8 * iBlock);
         }
+
+        /// <summary>
+        /// Get the memory value in Registers H & L
+        /// </summary>
+        /// <returns>Byte referenced by Registers H & L</returns>
         public byte GetMemoryValue() { return MainMemory[GetMemoryLocation(RegisterH, RegisterL)]; }
 
+        /// <summary>
+        /// Get or Set the Flags byte
+        /// </summary>
         public byte StatusByte
         {
             get
@@ -242,7 +353,9 @@ namespace Altair8800Emulator
                 SignBit = (value & 0b10000000) == 0b10000000;
             }
         }
-
+        /// <summary>
+        /// Load the vTable of all instructions
+        /// </summary>
         public void LoadvTable()
         {
 
@@ -323,46 +436,52 @@ namespace Altair8800Emulator
             {
                 if (RegisterB == 255) CarryBit = true; else CarryBit = false;
                 RegisterB++;
+                SetFlags(RegisterB);
             };
             vTable[0x14] = () => //INR D
             {
                 if (RegisterD == 255) CarryBit = true; else CarryBit = false;
                 RegisterD++;
-
+                SetFlags(RegisterD);
             };
             vTable[0x24] = () => // INR H
             {
                 if (RegisterH == 255) CarryBit = true; else CarryBit = false;
                 RegisterH++;
+                SetFlags(RegisterH);
             };
             vTable[0x34] = () => //INR M
             {
                 int iAddress = GetMemoryLocation(RegisterH, RegisterL);
                 if (MainMemory[iAddress]==255) CarryBit = true; else CarryBit = false;
                 MainMemory[iAddress]++;
+                SetFlags(MainMemory[iAddress]);
             };
 
             vTable[0x05] = () => //DCR B
             {
                 if (RegisterB == 0) CarryBit = true; else CarryBit = false;
                 RegisterB--;
+                SetFlags(RegisterB);
             };
             vTable[0x15] = () => //DCR D
             {
                 if (RegisterD == 0) CarryBit = true; else CarryBit = false;
                 RegisterD--;
-
+                SetFlags(RegisterD);
             };
             vTable[0x25] = () => // DCR H
             {
                 if (RegisterH == 0) CarryBit = true; else CarryBit = false;
                 RegisterH--;
+                SetFlags(RegisterH);
             };
             vTable[0x35] = () => //DCR M
             {
                 int iAddress = GetMemoryLocation(RegisterH, RegisterL);
                 if (MainMemory[iAddress] == 0) CarryBit = true; else CarryBit = false;
                 MainMemory[iAddress]--;
+                SetFlags(MainMemory[iAddress]);
             };
 
             vTable[0x06] = () => //MVI B
@@ -412,6 +531,7 @@ namespace Altair8800Emulator
                     highByte += 6;
                     CarryBit = true;
                 }
+                SetFlags(Accumulator);
             };
 
             vTable[0x37] = () => //STC
@@ -515,44 +635,51 @@ namespace Altair8800Emulator
             {
                 if (RegisterC == 255) CarryBit = true; else CarryBit = false;
                 RegisterC++;
+                SetFlags(RegisterC);
             };
             vTable[0x1C] = () => //INR E
             {
                 if (RegisterE == 255) CarryBit = true; else CarryBit = false;
                 RegisterE++;
+                SetFlags(RegisterE);
 
             };
             vTable[0x2C] = () => // INR L
             {
                 if (RegisterL == 255) CarryBit = true; else CarryBit = false;
                 RegisterL++;
+                SetFlags(RegisterL);
             };
             vTable[0x3C] = () => //INR A
             {
                 if (Accumulator == 255) CarryBit = true; else CarryBit = false;
                 Accumulator++;
-           };
+                SetFlags(Accumulator);
+            };
 
             vTable[0x0D] = () => //DCR C
             {
                 if (RegisterC == 0) CarryBit = true; else CarryBit = false;
                 RegisterC--;
+                SetFlags(RegisterC);
             };
             vTable[0x1D] = () => //DCR E
             {
                 if (RegisterE == 0) CarryBit = true; else CarryBit = false;
                 RegisterE--;
-
+                SetFlags(RegisterE);
             };
             vTable[0x2D] = () => // DCR L
             {
                 if (RegisterL == 0) CarryBit = true; else CarryBit = false;
                 RegisterL --;
+                SetFlags(RegisterL);
             };
             vTable[0x3D] = () => //DCR A
             {
                 if (Accumulator == 0) CarryBit = true; else CarryBit = false;
                 Accumulator--;
+                SetFlags(Accumulator);
             };
             vTable[0x0E] = () => //MVI C
             {
